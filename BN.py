@@ -14,7 +14,7 @@ class Node():
 		#If there are parents, evaluate each parent
 		else:
 			p = self.prob
-			for dad in reversed(self.parents):
+			for dad in self.parents:
 				p = p[evid[dad]]
 
 		#Returns a tuple corresponding to: (P(self = false), P(self = true))
@@ -27,9 +27,13 @@ class BN():
 	
 	def computePostProb(self, evid):
 		#TODO
-		return 0
-	
-	def computeJointProb(self, evid):
-		#TODO
 		
 		return 0
+		
+	
+	def computeJointProb(self, evid):
+		res = 1
+		i = 0
+		for prob in self.prob:
+			res *= prob.computeProb(evid)[evid[i]]
+		return res
