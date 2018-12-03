@@ -15,7 +15,7 @@ class Node():
 		else:
 			p = self.prob
 			for dad in self.parents:
-				p = p[dad]
+				p = p[evid[dad]]
 
 		#Returns a tuple corresponding to: (P(self = false), P(self = true))
 		return (1 - p, p)
