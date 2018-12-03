@@ -4,7 +4,7 @@ class Node():
 	def __init__(self, prob, parents = []):
 		self.prob = prob
 		self.parents = parents
-	
+
 	def computeProb(self, evid):
 		#TODO - THIS ONLY WORKS FOR JOINT PROB, FIX IT
 
