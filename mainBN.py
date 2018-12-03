@@ -12,7 +12,7 @@ np.set_printoptions(precision=4, suppress=True)
 
 	
 gra = [[],[],[0,1],[2],[2]]
-ev = (1,1,1,1,1)
+ev = (1,1,0,1,1)
 	
 p1 = Node( np.array([.001]), gra[0] )                   # burglary
 print( "p1 false %.4e p1 true %.4e" % (p1.computeProb(ev)[0] , p1.computeProb(ev)[1])) 

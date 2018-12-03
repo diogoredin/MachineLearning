@@ -41,4 +41,5 @@ class BN():
 		i = 0
 		for prob in self.prob:
 			res *= prob.computeProb(evid)[evid[i]]
+			i += 1
 		return res
