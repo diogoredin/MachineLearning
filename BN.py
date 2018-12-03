@@ -14,7 +14,7 @@ class Node():
 		#If there are parents, evaluate each parent
 		else:
 			p = self.prob
-			for dad in self.parents:
+			for dad in reversed(self.parents):
 				p = p[evid[dad]]
 
 		#Returns a tuple corresponding to: (P(self = false), P(self = true))
