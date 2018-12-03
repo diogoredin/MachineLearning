@@ -24,11 +24,16 @@ class BN():
 	def __init__(self, gra, prob):
 		self.gra = gra
 		self.prob = prob
-	
+
 	def computePostProb(self, evid):
-		#TODO
-		
-		return 0
+
+		res = 0
+		# Find position of unknown
+		# Find position of target
+		# Calculate Combination of True/False on the unknown position
+		# Sum combinations
+
+		return res
 		
 	
 	def computeJointProb(self, evid):
