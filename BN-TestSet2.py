@@ -37,7 +37,7 @@ print( "joint %.4g (0.2)" % bn.computeJointProb(ev) )
 ev = (1,1,1,1)
 print( "joint %.4g (0.0396)" % bn.computeJointProb(ev) ) 
 
-
+'''
 ### Tests to post Prob
 # P(e1|e4=1)
 ev = (-1,[],[],1)
@@ -50,7 +50,7 @@ ev = (1,[],[],-1)
 print("ev : ")
 print(ev)
 print( "post : %.4g (0.7452)" % bn.computePostProb(ev)  )
-
+'''
 # P(e1|e2=0,e3=0)
 ev = (-1,0,0,[])
 print("ev : ")
