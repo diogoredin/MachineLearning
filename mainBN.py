@@ -10,7 +10,6 @@ from BN import *
 
 np.set_printoptions(precision=4, suppress=True)
 
-	
 gra = [[],[],[0,1],[2],[2]]
 ev = (1,1,0,1,1)
 	
@@ -25,10 +24,10 @@ print( "p1 = 1, p2 = 1, p3 false %.4e p3 true %.4e" % (p3.computeProb(ev)[0] , p
 p4 = Node( np.array([.05,.9]), gra[3] )                 # johncalls F(A,J)
 
 p5 = Node( np.array([.01,.7]), gra[4] )                 # marycalls F(A,M)
-prob = [p1,p2,p3,p4,p5]
+nodes = [p1,p2,p3,p4,p5]
 
 gra = [[],[],[0,1],[2],[2]]
-bn = BN(gra, prob)
+bn = BN(gra, nodes)
 
 jp = []
 for e1 in [0,1]:

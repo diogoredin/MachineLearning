@@ -1,14 +1,39 @@
 # -*- coding: utf-8 -*-
 class Factor():
-	def __init__(self, prob, units):
-		self.prob = prob
-		self.units = units
-	
-	def eliminate(self, unit, factors):
-		dictio = {}
-		return dictio
+	def __init__(self, prob, unit_list):
+		if len(prob) == 1:
+			self.prob = prob[0]
+		else:
+			self.prob = prob
 
-	
+		list_negative = self.prob.copy()
+		idx = []
+
+		for i in range((len(unit_list)-1)**2):
+			for binary in range(len(unit_list)-1):
+				idx[binary] = int(i & 1 << binary != 0)
+			l = list_negative
+			for index in idx[:-1]:
+				l = l[index]
+			l[idx[-1]] = 1 - l[idx[-1]]
+
+		self.prob = [list_negative, self.prob]
+
+		print(self.prob)
+
+	def getProb(self, evid):
+		p = self.prob
+		for val in evid[1:]:
+			p = p[val]
+		if evid[1] == 0:
+			p = 1 - p
+		return p
+
+	# def multiply(self, factorB):
+	# def sumOut(self, unit, factors):
+		# evid = ()
+		# self.getProb()
+
 class Node():
 	def __init__(self, prob, parents = []):
 		self.prob = prob
@@ -28,14 +53,26 @@ class Node():
 		return (1 - p, p)
 	
 class BN():
-	def __init__(self, gra, prob):
+	def __init__(self, gra, nodes):
 		self.gra = gra
-		self.prob = prob
+		self.nodes = nodes
 
 	def computePostProb(self, evid):
-		#TODO
+
+		# Create a list corresponding to : [index,parents,...]
+		factors = []
+		for i in range(len(self.nodes)):
+			unit_list = []
+			unit_list.append(i)
+			for dad in self.nodes[i].parents:
+				unit_list.append(dad)
+			factors.append(Factor(self.nodes.prob, unit_list))
+
+		# F1 = Factor(earthquakeNode.prob, unit_list)
+		# F2 = Factor(alarmNode.prob, unit_list)
+		# F1.multiply(F2)
+
 		ign = []
-		
 		for i in range(len(evid), 0, -1):
 			if evid[i] == []:
 				ign.append(i)
