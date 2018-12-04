@@ -18,11 +18,13 @@ def flatten(l):
 		i += 1
 	return l
 
+
 class Factor():
 	def __init__(self, prob, units):
 		''' 
 		Used for the variable elimination algorithm.
 		prob is the probability, ordered according to the units (variables)
+		Initialization is O(1).
 		'''
 		self.prob = prob
 		self.units = units
@@ -37,6 +39,7 @@ class Factor():
 		''' 
 		Used for the variable elimination algorithm.
 		sums out the *unit* variable. unit is the variable index in the node.
+		Complexity: O(n)
 		'''
 		new_prob = []
 		unit_pos = -1
@@ -90,7 +93,16 @@ class Node():
 		
 		self.parents = parents
 
+	def show(self):
+		print ("Node parents:")
+		print (self.parents)
+		print ("Node prob:")
+		print (self.prob)
+
 	def computeProb(self, evid):
+		'''
+		Complexity is O(m), m is the number of parents the node has.
+		'''
 		
 		# If there are no parents, the probability is trivial
 		if self.parents == []:
@@ -116,6 +128,11 @@ class BN():
 		return 0
 	
 	def computeJointProb(self, evid):
+		'''
+		Complexity: O(n * m)
+		n is the number of nodes. m is the number of the node's parents.
+		'''
+
 		res = 1
 		for i in range(len(self.nodes)):
 			res *= self.nodes[i].computeProb(evid)[evid[i]]
