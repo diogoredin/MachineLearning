@@ -1,24 +1,27 @@
 # -*- coding: utf-8 -*-
+
+import copy
+
 class Factor():
 	def __init__(self, prob, unit_list):
+		prob = list(prob)
 		if len(prob) == 1:
 			self.prob = prob[0]
 		else:
 			self.prob = prob
 
-		list_negative = self.prob.copy()
-		idx = []
+		list_negative = copy.deepcopy(self.prob)
 
 		for i in range((len(unit_list)-1)**2):
+			idx = []
 			for binary in range(len(unit_list)-1):
-				idx[binary] = int(i & 1 << binary != 0)
+				idx.append(int(i & 1 << binary != 0))
 			l = list_negative
 			for index in idx[:-1]:
-				l = l[index]
+				l = l[int(index)]
 			l[idx[-1]] = 1 - l[idx[-1]]
 
 		self.prob = [list_negative, self.prob]
-
 		print(self.prob)
 
 	def getProb(self, evid):
