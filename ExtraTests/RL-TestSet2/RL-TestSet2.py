@@ -43,7 +43,7 @@ absorv[-1]=1
 
 fmdp = RL.finiteMDP(4,4,0.9,Pl,Rl,absorv)
 
-J,traj = fmdp.runPolicy( 3000,0,poltype = "exploration")
+J,traj = fmdp.runPolicy(3000, 0, poltype = "exploration")
 data = np.load("Q2.npz")
 Qr = fmdp.traces2Q(traj)
 if np.sqrt(sum(sum((data['Q1']-Qr)**2)))<1:
@@ -51,7 +51,7 @@ if np.sqrt(sum(sum((data['Q1']-Qr)**2)))<1:
 else:
 	print("Aproximação de Q fora do previsto. FAILED\n")
 
-J,traj = fmdp.runPolicy(3,1,poltype = "exploitation", polpar = Qr)
+J,traj = fmdp.runPolicy(3, 1, poltype = "exploitation", polpar = Qr)
 if np.sqrt(sum(sum((data['traj2']-traj)**2)))<1:
 	print("Trajectória óptima. OK\n")
 else:
