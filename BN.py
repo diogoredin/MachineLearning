@@ -38,20 +38,29 @@ class Factor():
 	def sumOut(self, unit):
 		''' 
 		Used for the variable elimination algorithm.
-		sums out the *unit* variable. unit is the variable index in the node.
+		Complexity: O(n)
+		'''
+		self.cutOut(unit, -1)
+
+	def cutOut(self, unit, value):
+		''' 
+		Used for the variable elimination algorithm.
+		if value = 0 || 1 -> Removes the unused value from a set evidence variable.
+		if value = -1 sums out the *unit* variable. unit is the variable index in the node.
 		Complexity: O(n)
 		'''
 		new_prob = []
-		unit_pos = -1
 
+		unit_pos = -1
+		
 		for i in range(len(self.units)):
 			if unit == self.units[i]:
 				unit_pos = i
 
 		if unit_pos == -1:
-			print("No variable to sum out")
+			print("No variable to cut")
 			return
-		
+
 		max_hops = 2**(len(self.units) - 1 - unit_pos)
 		hop_distance = max_hops
 		print (max_hops)
@@ -60,13 +69,23 @@ class Factor():
 
 		while i < len(self.prob):
 			for remaining_hops in range(max_hops):
-				new_prob.append(self.prob[i] + self.prob[i + hop_distance])
+				# Obtain P(unit = true)
+				if value == 1:
+					new_prob.append(self.prob[i + hop_distance])
+				# Obtain P(unit = false)
+				elif value == 0:
+					new_prob.append(self.prob[i])
+				# Obtain P(unit = false) + P(unit = true): sumOut
+				elif value == -1:
+					new_prob.append(self.prob[i] + self.prob[i + hop_distance])
 				remaining_hops -= 1
 				i += 1
 			i += hop_distance
 		
 		del self.units[unit_pos]
 		self.prob = new_prob
+
+		
 		
 
 def getFactorFromNode(node, node_index):

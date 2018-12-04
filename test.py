@@ -11,5 +11,9 @@ f1.sumOut(1)
 f1.show()
 
 f2 = getFactorFromNode(p5, 4)
-f2.sumOut(4)
+f2.cutOut(2, 0)
 f2.show()
+
+f3 = getFactorFromNode(p5, 4)
+f3.cutOut(4, 0)
+f3.show()
