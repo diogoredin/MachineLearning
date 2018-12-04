@@ -8,9 +8,10 @@ Created on Thu Oct 11 09:27:16 2018
 import numpy as np
 import RL as RL
 
-# Exercise 1
-print("Exercicio 1")
+#------------------------------- EXERCISE 1 -------------------------------#
+print("Exercise 1")
 
+# Data
 Pl = np.zeros((7,2,7))
 Pl[0,0,1]=1
 Pl[1,0,2]=1
@@ -33,32 +34,53 @@ Rl = np.zeros((7,2))
 Rl[[0,6],:]=1
 absorv = np.zeros((7,1))
 absorv[[0,6]]=1
+
+# Constructor
 fmdp = RL.finiteMDP(7,2,0.9,Pl,Rl,absorv)
 
+# Generate an optimal trajectory according to Exploration
 J,traj = fmdp.runPolicy(3,3,poltype = "exploration")
-data = np.load("Q1.npz")
-Qr = fmdp.traces2Q(traj)
-print(fmdp.Q)
 
+# Calculate the Q values of the trajectory chosen
+Qr = fmdp.traces2Q(traj)
+
+# Print results
+print(traj)
+print(Qr)
+
+# Check results
+data = np.load("Q1.npz")
 if np.sqrt(sum(sum((data['Q1']-Qr)**2)))<1:
 	print("Aproximação de Q dentro do previsto. OK\n")
 else:
 	print("Aproximação de Q fora do previsto. FAILED\n")
 
+# Generate an optimal trajectory according to Exploration
 J,traj = fmdp.runPolicy(3,3,poltype = "exploitation", polpar = Qr)
+
+# Print results
+print(traj)
+
+# Check results
 if np.sqrt(sum(sum((data['traj2']-traj)**2)))<1:
 	print("Trajectória óptima. OK\n")
 else:
 	print("Trajectória não óptima. FAILED\n")
-	
-# Exercise 2
-print("Exercicio 2")
 
+#------------------------------- EXERCISE 2 -------------------------------#
+print("Exercise 2")
+
+# Data
 data = np.load("traj.npz")
-fmdp = RL.finiteMDP(8,4,0.9)
-q2 = fmdp.traces2Q(data['traj'])
-print(fmdp.Q)
 
+# Constructor
+fmdp = RL.finiteMDP(8,4,0.9)
+
+# Calculate the Q values of the given trajectory
+q2 = fmdp.traces2Q(data['traj'])
+print(q2)
+
+# Check results
 if np.sqrt(sum(sum((data['Q']-q2)**2)))<1:
 	print("Aproximação de Q dentro do previsto. OK\n")
 else:

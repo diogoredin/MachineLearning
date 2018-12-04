@@ -22,7 +22,7 @@ class finiteMDP:
 		self.nA = nA
 
 		# Matrix that holds the values learned for each action on each state
-		self.Q = np.zeros((self.nS,self.nA))
+		self.Q = np.zeros((self.nS, self.nA))
 
 		# List that holds the learning policy prefered for each state (?)
 		self.V = np.zeros((self.nS))
@@ -35,13 +35,13 @@ class finiteMDP:
 
 		# Holds the probability of success of going from one state to another when performing a certain action
 		if len(P)==0:
-			self.P = np.zeros((self.nS,self.nA,self.nS))
+			self.P = np.zeros((self.nS, self.nA, self.nS))
 		else:
 			self.P = P
 
 		# Indicates for a given state and action the immediate reward of performing such action
 		if len(R)==0:
-			self.R = np.zeros((self.nS,self.nA))
+			self.R = np.zeros((self.nS, self.nA))
 		else:
 			self.R = R
 
@@ -88,7 +88,7 @@ class finiteMDP:
 		return self.Q,  self.Q2pol(self.Q)
 
 	def traces2Q(self, trace):
-		'''From a given trace calculates the Q values for each action.'''
+		'''From a trace of the trajectory calculates the Q values for each action.'''
 
 		# Matrix of nQ values - value of performing an action (nA) in a given state (nS)
 		nQ = np.zeros((self.nS,self.nA))
@@ -112,15 +112,13 @@ class finiteMDP:
 		return self.Q
 
 	def policy(self, x, poltype, par = []):
-		'''A policy function, is a direct map from each state to the best corresponding action at that state.'''
+		'''For a given state returns the best corresponding action according to the specified policy. This function is used to calculate trajectories.'''
 
 		if poltype == 'exploitation':
-			pass
+			return 1
 
 		elif poltype == 'exploration':
-			pass
-
-		return 0
+			return 0
 
 	def Q2pol(self, Q, eta=5):
 		return np.exp(eta*Q)/np.dot(np.exp(eta*Q),np.array([[1,1],[1,1]]))
