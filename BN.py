@@ -3,7 +3,7 @@
 def flatten(l):
 
 	'''
-	Flattens a list with an arbitrary number of dimensions, creating a single, one dimensional list.
+	Flattens a list with an arbitrary number of inner lists, creating a single, one dimensional list.
 	O(n * m) -> n is the list size, m is the max list depth
 	'''
 	i = 0
@@ -50,7 +50,6 @@ class Factor():
 		Complexity: O(n)
 		'''
 		new_prob = []
-
 		unit_pos = -1
 		
 		for i in range(len(self.units)):
@@ -58,12 +57,10 @@ class Factor():
 				unit_pos = i
 
 		if unit_pos == -1:
-			print("No variable to cut")
 			return
 
 		max_hops = 2**(len(self.units) - 1 - unit_pos)
 		hop_distance = max_hops
-		print (max_hops)
 
 		i = 0
 
@@ -78,15 +75,13 @@ class Factor():
 				# Obtain P(unit = false) + P(unit = true): sumOut
 				elif value == -1:
 					new_prob.append(self.prob[i] + self.prob[i + hop_distance])
-				remaining_hops -= 1
+
 				i += 1
 			i += hop_distance
 		
 		del self.units[unit_pos]
 		self.prob = new_prob
 
-		
-		
 
 def getFactorFromNode(node, node_index):
 	new_prob = [0] * (2**(len(node.parents) + 1))
@@ -96,14 +91,11 @@ def getFactorFromNode(node, node_index):
 	for i in range(halfway):
 		new_prob[i] = 1 - new_prob[i + halfway]
 
-	
 	unit_list = [0] * (len(node.parents) + 1)
 	unit_list[0] = node_index
 	unit_list[1:] = node.parents
-
+	
 	return Factor(new_prob, unit_list)
-
-
 
 class Node():
 	def __init__(self, prob, parents = []):
@@ -144,6 +136,32 @@ class BN():
 		self.nodes = nodes
 
 	def computePostProb(self, evid):
+		# Getting query and unknown variables
+		unknown = []
+		query = -1
+		for i in range(len(evid)):
+			if evid[i] == []:
+				unknown.append(i)
+			elif evid[i] == -1:
+				query = i
+
+		# Creating factors
+		factors = []
+		for i in range(len(self.nodes)):
+			factors.append(getFactorFromNode(self.nodes[i], i))
+
+		# *** STEP 1 - CUT EVIDENCE VARIABLES *** #
+		for i in range(len(evid)):
+			if evid[i] == 0 or evid[i] == 1:
+				val = evid[i]
+				for f in factors:
+					print ("cut out " + str(i) + " for value "+ str(val))
+					f.cutOut(i, val)
+		
+		for f in factors:
+			f.show()
+		# *** STEP 2 - SUM_OUT *** #
+		
 		return 0
 	
 	def computeJointProb(self, evid):
@@ -156,3 +174,4 @@ class BN():
 		for i in range(len(self.nodes)):
 			res *= self.nodes[i].computeProb(evid)[evid[i]]
 		return res
+
