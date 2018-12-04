@@ -18,6 +18,70 @@ def flatten(l):
 		i += 1
 	return l
 
+class Factor():
+	def __init__(self, prob, units):
+		''' 
+		Used for the variable elimination algorithm.
+		prob is the probability, ordered according to the units (variables)
+		'''
+		self.prob = prob
+		self.units = units
+
+	def show(self):
+		print("Factor Prob:")
+		print(self.prob)
+		print("Factor Units:")
+		print(self.units)
+
+	def sumOut(self, unit):
+		''' 
+		Used for the variable elimination algorithm.
+		sums out the *unit* variable. unit is the variable index in the node.
+		'''
+		new_prob = []
+		unit_pos = -1
+
+		for i in range(len(self.units)):
+			if unit == self.units[i]:
+				unit_pos = i
+
+		if unit_pos == -1:
+			print("No variable to sum out")
+			return
+		
+		max_hops = 2**(len(self.units) - 1 - unit_pos)
+		hop_distance = max_hops
+		print (max_hops)
+
+		i = 0
+
+		while i < len(self.prob):
+			for remaining_hops in range(max_hops):
+				new_prob.append(self.prob[i] + self.prob[i + hop_distance])
+				remaining_hops -= 1
+				i += 1
+			i += hop_distance
+		
+		del self.units[unit_pos]
+		self.prob = new_prob
+		
+
+def getFactorFromNode(node, node_index):
+	new_prob = [0] * (2**(len(node.parents) + 1))
+	halfway = len(new_prob) // 2
+	new_prob[halfway:] = node.prob
+
+	for i in range(halfway):
+		new_prob[i] = 1 - new_prob[i + halfway]
+
+	
+	unit_list = [0] * (len(node.parents) + 1)
+	unit_list[0] = node_index
+	unit_list[1:] = node.parents
+
+	return Factor(new_prob, unit_list)
+
+
 
 class Node():
 	def __init__(self, prob, parents = []):
@@ -40,6 +104,7 @@ class Node():
 				index += (1 & evid[dad]) << dad_count
 				dad_count -= 1
 			p = self.prob[index]
+		
 		return (1 - p, p)
 
 class BN():
