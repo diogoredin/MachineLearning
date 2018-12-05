@@ -1,12 +1,16 @@
 from BN import *
 import numpy as np
 
-gra = [[],[0],[0],[1,2]]
-p3 = Node( np.array([.2,.8]), gra[2] )# rain
-p4 = Node( np.array([[.0,.9],[.9,.99]]), gra[3] )# wetgrass
+gra = [[],[0],[0]]
 
-f1 = getFactorFromNode(p4, 3)
-f2 = getFactorFromNode(p3,2)
+p1 = Node([0.5], gra[0]) # Probability that it's raining
+p2 = Node([0.8, 0.1], gra[1]) # Probability that i go to the beach
+p3 = Node([0.2, 0.8], gra[2]) # Probability that there are waves
 
-f2.mul(f1)
-f2.show()
+prob = [p1,p2,p3]
+
+ev = [-1, 1, 1]
+bn = BN(gra, prob)
+
+print("For event " + str(ev))
+print("probability is: " + str(bn.computePostProb(ev)))

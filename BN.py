@@ -29,56 +29,53 @@ class Factor():
 		self.prob = prob
 		self.units = units
 
-	def show(self):
-		print("Factor:")
-		print("Factor Prob:")
-		print(self.prob)
-		print("Factor Units:")
-		print(self.units)
-
-	def sumOut(self, unit):
+	def sumOut(self, factor):
 		''' 
 		Used for the variable elimination algorithm.
 		Complexity: O(n)
 		'''
-		self.cutOut(unit, -1)
+		for i in range(len(self.prob)):
+			self.prob[i] += factor.prob[i]
 
-	def cutOut(self, unit, value):
+	def cut(self, unit, value):
 		''' 
 		Used for the variable elimination algorithm.
 		if value = 0 || 1 -> Removes the unused value from a set evidence variable.
 		if value = -1 sums out the *unit* variable. unit is the variable index in the node.
 		Complexity: O(n)
 		'''
+		if unit not in self.units:
+			return self
 		new_prob = []
 
-		# Updating positions
-		unit_pos = self.units[unit]
-		for element in self.units:
-			if self.units[element] > unit_pos:
-				self.units[element] -= 1
+
 		
-		max_hops = self.getMultiplier(unit_pos)
+		res = Factor(self.prob, self.units.copy())
+		# Updating positions
+		unit_pos = res.units[unit]
+		for element in res.units:
+			if res.units[element] > unit_pos:
+				res.units[element] -= 1
+		
+		max_hops = res.getMultiplier(unit_pos)
 		hop_distance = max_hops
 		i = 0
 
-		while i < len(self.prob):
+		while i < len(res.prob):
 			for remaining_hops in range(max_hops):
 				# Obtain P(unit = true)
 				if value == 1:
-					new_prob.append(self.prob[i + hop_distance])
+					new_prob.append(res.prob[i + hop_distance])
 				# Obtain P(unit = false)
 				elif value == 0:
-					new_prob.append(self.prob[i])
-				# Obtain P(unit = false) + P(unit = true): sumOut
-				elif value == -1:
-					new_prob.append(self.prob[i] + self.prob[i + hop_distance])
+					new_prob.append(res.prob[i])
 
 				i += 1
 			i += hop_distance
 		
-		del self.units[unit]
-		self.prob = new_prob
+		del res.units[unit]
+		res.prob = new_prob
+		return res
 
 
 	def mul(self, factor):
@@ -90,16 +87,19 @@ class Factor():
 		max_common = [-1, -1]
 		factors = (self, factor)
 		common_units = []
+		new_units = {}
 
 		for element in self.units:
 			if element in factor.units:
 				common_units.append(element)
-				if max_common[0] == -1:
-					max_common[0] = self.units[element]
-					max_common[1] = factor.units[element]
-				elif max_common[0] > self.units[element]:
-					max_common[0] = self.units[element]
-					max_common[1] = factor.units[element]
+				if max_common[0] == -1 or max_common[0] != -1 and max_common[0] > self.units[element]:
+					max_common = [self.units[element], factor.units[element]]
+			if element not in new_units:
+				updateDict(new_units, element)
+
+		for element in factor.units:
+			if element not in new_units:
+				updateDict(new_units, element)
 		
 		hops = [1, 1]
 
@@ -110,9 +110,7 @@ class Factor():
 			else:
 				hops = [int(1 / multiplier), 1]
 		
-		print(common_units)
-
-		new_prob = [1] * (1 << (len(factors[0].units) + len(factors[1].units) - 2 * len(common_units)))
+		new_prob = [1] * (1 << (len(factors[0].units) + len(factors[1].units) - len(common_units)))
 		for i in range(2):
 			factor_index = 0
 			it = 0
@@ -126,18 +124,18 @@ class Factor():
 				factor_index += 1
 				if factor_index >= len(factors[i].prob):
 					factor_index = 0	
-	
-		self.prob = new_prob
 
-		'''
-		
-
-		self.prob = new_prob
-		self.units = new_units
-		'''
+		return Factor(new_prob, new_units)
 
 	def getMultiplier(self, unit_pos):
 		return 1 << (len(self.units) - 1 - unit_pos)
+
+	def normalize(self):
+		add = self.prob[0] + self.prob[1]
+		self.prob[0] /= add
+		self.prob[1] /= add
+
+
 
 def getFactorFromNode(node, node_index):
 	new_prob = [0] * (2**(len(node.parents) + 1))
@@ -155,18 +153,25 @@ def getFactorFromNode(node, node_index):
 
 	return Factor(new_prob, unit_list)
 
+
+def updateDict(d, val):
+	pos = len(d)
+	for i in d:
+		if i > val:
+			if pos > d[i]:
+				pos = d[i]
+			d[i] += 1
+	d[val] = pos
+
+
 class Node():
 	def __init__(self, prob, parents = []):
-		prob = prob.tolist()
+		if type(prob) != list:
+			prob = prob.tolist()
+			
 		self.prob = flatten(prob)
 		
 		self.parents = parents
-
-	def show(self):
-		print ("Node parents:")
-		print (self.parents)
-		print ("Node prob:")
-		print (self.prob)
 
 	def computeProb(self, evid):
 		'''
@@ -196,15 +201,10 @@ class BN():
 	def computePostProb(self, evid):
 		# Getting query and unknown variables
 		unknown = []
-		query = -1
+		
 		for i in range(len(evid)):
 			if evid[i] == []:
-				unknown.append(i)
-			elif evid[i] == -1:
-				query = i
-		if query == -1:
-			print ("No query")
-			return
+				unknown.append(i)		
 
 		# Creating factors
 		factors = []
@@ -213,14 +213,42 @@ class BN():
 
 		# *** STEP 1 - CUT EVIDENCE VARIABLES *** #
 		for i in range(len(evid)):
-			if evid[i] == 0 or evid[i] == 1:
-				val = evid[i]
-				for f in factors:
-					f.cutOut(i, val)
-		
+			val = evid[i]
+			if val == 0 or val == 1:
+				for findex in range(len(factors)):
+					factors[findex] = factors[findex].cut(i, val)
+	
 		# *** STEP 2 - SUM_OUT *** #
+		factor_val = (0, 1)
+
+		while len(unknown):
+			sum_var = unknown[-1]
+			unknown = unknown[:-1]
+			to_sum = []
+			factor_sums = [Factor([1.0],{}), Factor([1.0],{})]
+
+			
+			for f in factors:
+				if sum_var in f.units:
+					to_sum.append(f)
+			
+			for val in factor_val:
+				for f in to_sum:
+					factor_sums[val] = factor_sums[val].mul(f.cut(sum_var, val))
+
+			if len(factor_sums[0].units) != 0:
+				factor_sums[0].sumOut(factor_sums[1])
+				
+				factors.append(factor_sums[0])
+
+			for f in to_sum:
+				factors.remove(f)
 		
-		return 0
+		f_res = Factor([1], {})
+		for f in factors:
+			f_res = f_res.mul(f)
+		f_res.normalize()
+		return f_res.prob[1]
 	
 	def computeJointProb(self, evid):
 		'''
