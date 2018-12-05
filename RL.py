@@ -111,14 +111,27 @@ class finiteMDP:
 
 		return self.Q
 
+	# J,traj = fmdp.runPolicy(3,3,poltype = "exploitation", polpar = Qr)
 	def policy(self, x, poltype, par = []):
 		'''For a given state returns the best corresponding action according to the specified policy. This function is used to calculate trajectories.'''
 
-		if poltype == 'exploitation':
-			return 1
+		p = np.copy(self.P)
 
-		elif poltype == 'exploration':
+		# Exploitation - take the action with the highest probability for this state
+		if poltype == 'exploitation':
+
+			# Get the action with the highest probability and re-construct the indices of the multidimensional matrix
+			a = np.array([5, *np.unravel_index(p[x].argmax(), p[x].shape)])[1]
+
 			return 0
+
+		# Exploration - taking a random choice
+		elif poltype == 'exploration':
+
+			# Pick two random options for state x
+			r = np.random.choice(p[x].shape, 2, replace=False)
+
+			return 1
 
 	def Q2pol(self, Q, eta=5):
 		return np.exp(eta*Q)/np.dot(np.exp(eta*Q),np.array([[1,1],[1,1]]))

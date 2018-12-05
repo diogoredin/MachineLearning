@@ -45,8 +45,8 @@ J,traj = fmdp.runPolicy(3,3,poltype = "exploration")
 Qr = fmdp.traces2Q(traj)
 
 # Print results
-print(traj)
-print(Qr)
+# print(traj)
+# print(Qr)
 
 # Check results
 data = np.load("Q1.npz")
@@ -59,7 +59,7 @@ else:
 J,traj = fmdp.runPolicy(3,3,poltype = "exploitation", polpar = Qr)
 
 # Print results
-print(traj)
+# print(traj)
 
 # Check results
 if np.sqrt(sum(sum((data['traj2']-traj)**2)))<1:
@@ -78,7 +78,7 @@ fmdp = RL.finiteMDP(8,4,0.9)
 
 # Calculate the Q values of the given trajectory
 q2 = fmdp.traces2Q(data['traj'])
-print(q2)
+# print(q2)
 
 # Check results
 if np.sqrt(sum(sum((data['Q']-q2)**2)))<1:
