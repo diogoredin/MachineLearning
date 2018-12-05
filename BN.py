@@ -30,6 +30,7 @@ class Factor():
 		self.units = units
 
 	def show(self):
+		print("Factor:")
 		print("Factor Prob:")
 		print(self.prob)
 		print("Factor Units:")
@@ -50,20 +51,16 @@ class Factor():
 		Complexity: O(n)
 		'''
 		new_prob = []
-		unit_pos = -1
+
+		# Updating positions
+		unit_pos = self.units[unit]
+		for element in self.units:
+			if self.units[element] > unit_pos:
+				self.units[element] -= 1
 		
-		for i in range(len(self.units)):
-			if unit == self.units[i]:
-				unit_pos = i
-
-		if unit_pos == -1:
-			return
-
 		max_hops = 2**(len(self.units) - 1 - unit_pos)
 		hop_distance = max_hops
-
 		i = 0
-
 		while i < len(self.prob):
 			for remaining_hops in range(max_hops):
 				# Obtain P(unit = true)
@@ -79,22 +76,38 @@ class Factor():
 				i += 1
 			i += hop_distance
 		
-		del self.units[unit_pos]
+		del self.units[unit]
 		self.prob = new_prob
+
+	def mul(self, factor):
+		''' 
+		Multiplies a factor by another, storing the result in self.
+		Complexity: idk
+		'''
+		new_prob = []
+		new_units = []
+		hops = []
+
+
+		self.prob = new_prob
+		self.units = new_units
 
 
 def getFactorFromNode(node, node_index):
 	new_prob = [0] * (2**(len(node.parents) + 1))
-	halfway = len(new_prob) // 2
-	new_prob[halfway:] = node.prob
+	index = 0
+	for i in range(0, len(new_prob), 2):
+		new_prob[i] = 1 - node.prob[index]
+		new_prob[i + 1] = node.prob[index]
+		index += 1
 
-	for i in range(halfway):
-		new_prob[i] = 1 - new_prob[i + halfway]
+	unit_list = {}
+	index = 0
+	for parent in node.parents:
+		unit_list[parent] = index
+		index += 1
+	unit_list[node_index] = index
 
-	unit_list = [0] * (len(node.parents) + 1)
-	unit_list[0] = node_index
-	unit_list[1:] = node.parents
-	
 	return Factor(new_prob, unit_list)
 
 class Node():
@@ -128,7 +141,7 @@ class Node():
 				dad_count -= 1
 			p = self.prob[index]
 		
-		return (1 - p, p)
+		return [1 - p, p]
 
 class BN():
 	def __init__(self, gra, nodes):
@@ -155,11 +168,8 @@ class BN():
 			if evid[i] == 0 or evid[i] == 1:
 				val = evid[i]
 				for f in factors:
-					print ("cut out " + str(i) + " for value "+ str(val))
 					f.cutOut(i, val)
 		
-		for f in factors:
-			f.show()
 		# *** STEP 2 - SUM_OUT *** #
 		
 		return 0
@@ -174,4 +184,3 @@ class BN():
 		for i in range(len(self.nodes)):
 			res *= self.nodes[i].computeProb(evid)[evid[i]]
 		return res
-
