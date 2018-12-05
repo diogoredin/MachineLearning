@@ -58,9 +58,10 @@ class Factor():
 			if self.units[element] > unit_pos:
 				self.units[element] -= 1
 		
-		max_hops = 2**(len(self.units) - 1 - unit_pos)
+		max_hops = self.getMultiplier(unit_pos)
 		hop_distance = max_hops
 		i = 0
+
 		while i < len(self.prob):
 			for remaining_hops in range(max_hops):
 				# Obtain P(unit = true)
@@ -79,19 +80,64 @@ class Factor():
 		del self.units[unit]
 		self.prob = new_prob
 
+
 	def mul(self, factor):
 		''' 
 		Multiplies a factor by another, storing the result in self.
 		Complexity: idk
 		'''
-		new_prob = []
-		new_units = []
-		hops = []
 
+		max_common = [-1, -1]
+		factors = (self, factor)
+		common_units = []
+
+		for element in self.units:
+			if element in factor.units:
+				common_units.append(element)
+				if max_common[0] == -1:
+					max_common[0] = self.units[element]
+					max_common[1] = factor.units[element]
+				elif max_common[0] > self.units[element]:
+					max_common[0] = self.units[element]
+					max_common[1] = factor.units[element]
+		
+		hops = [1, 1]
+
+		if self.getMultiplier(max_common[0]) != factor.getMultiplier(max_common[1]):
+			multiplier = self.getMultiplier(max_common[0]) / float(factor.getMultiplier(max_common[1]))
+			if multiplier > 1:
+				hops = [1, int(multiplier)]
+			else:
+				hops = [int(1 / multiplier), 1]
+		
+		print(common_units)
+
+		new_prob = [1] * (1 << (len(factors[0].units) + len(factors[1].units) - 2 * len(common_units)))
+		for i in range(2):
+			factor_index = 0
+			it = 0
+			while it < len(new_prob):
+				hops_left = hops[i]
+				while hops_left > 0:
+					new_prob[it] *= factors[i].prob[factor_index]
+					it += 1
+					hops_left -= 1
+
+				factor_index += 1
+				if factor_index >= len(factors[i].prob):
+					factor_index = 0	
+	
+		self.prob = new_prob
+
+		'''
+		
 
 		self.prob = new_prob
 		self.units = new_units
+		'''
 
+	def getMultiplier(self, unit_pos):
+		return 1 << (len(self.units) - 1 - unit_pos)
 
 def getFactorFromNode(node, node_index):
 	new_prob = [0] * (2**(len(node.parents) + 1))
@@ -100,7 +146,6 @@ def getFactorFromNode(node, node_index):
 		new_prob[i] = 1 - node.prob[index]
 		new_prob[i + 1] = node.prob[index]
 		index += 1
-
 	unit_list = {}
 	index = 0
 	for parent in node.parents:
@@ -157,6 +202,9 @@ class BN():
 				unknown.append(i)
 			elif evid[i] == -1:
 				query = i
+		if query == -1:
+			print ("No query")
+			return
 
 		# Creating factors
 		factors = []
