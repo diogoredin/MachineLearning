@@ -52,10 +52,12 @@ class Factor():
 		res = Factor(self.prob, self.units.copy())
 		# Updating positions
 		unit_pos = res.units[unit]
+
 		for element in res.units:
 			if res.units[element] > unit_pos:
 				res.units[element] -= 1
 		
+
 		max_hops = res.getMultiplier(unit_pos)
 		hop_distance = max_hops
 		i = 0
@@ -68,14 +70,11 @@ class Factor():
 				# Obtain P(unit = false)
 				elif value == 0:
 					new_prob.append(res.prob[i])
-
 				i += 1
 			i += hop_distance
-		
 		del res.units[unit]
 		res.prob = new_prob
 		return res
-
 
 	def mul(self, factor):
 		''' 
@@ -83,14 +82,12 @@ class Factor():
 		Complexity: idk
 		'''
 
-		max_common = [-1, -1]
-		factors = (self, factor)
-		common_units = []
+		common_units = 0
 		new_units = {}
 
 		for element in self.units:
 			if element in factor.units:
-				common_units.append(element)
+				common_units += 1
 
 			if element not in new_units:
 				updateDict(new_units, element)
@@ -99,43 +96,45 @@ class Factor():
 			if element not in new_units:
 				updateDict(new_units, element)
 
-		new_prob = [1] * (1 << (len(factors[0].units) + len(factors[1].units) - len(common_units)))
+		new_prob = [1] * (1 << (len(self.units) + len(factor.units) - common_units))
 
 		for i in range(1 << len(new_units)):
 			new_prob[i] = self.getProb(i, new_units) * factor.getProb(i, new_units)
 
 		return Factor(new_prob, new_units)
 
+
 	def getMultiplier(self, unit_pos):
-		return 1 << (len(self.units) - 1 - unit_pos)
+		return 1 << unit_pos
 
 	def normalize(self):
-		add = self.prob[0] + self.prob[1]
+		add = float(self.prob[0] + self.prob[1])
 		self.prob[0] /= add
 		self.prob[1] /= add
 
 	def getProb(self, evid, new_units):
-		index = 0
-		mul = len (self.units) - 1
 
+		index = 0
 		for unit in self.units:
-			index += int(evid & 1 << len (new_units) - 1 - new_units[unit] != 0) << mul - self.units[unit]
+			index += int(evid & 1 << new_units[unit] != 0) << self.units[unit]
 		return self.prob[index]
 
 
 def getFactorFromNode(node, node_index):
+	# Creating new prob list for factor
 	new_prob = [0] * (1 << (len(node.parents) + 1))
-	index = 0
 	for i in range(0, len(new_prob), 2):
-		new_prob[i] = 1 - node.prob[index]
-		new_prob[i + 1] = node.prob[index]
-		index += 1
+		new_prob[i] = 1 - node.prob[i >> 1]
+		new_prob[i + 1] = node.prob[i >> 1]
+	
 	unit_list = {}
-	index = 0
+	unit_pos = len(node.parents)
+
+	# Creating new unit list + position for factor
 	for parent in node.parents:
-		unit_list[parent] = index
-		index += 1
-	unit_list[node_index] = index
+		unit_list[parent] = unit_pos
+		unit_pos -= 1
+	unit_list[node_index] = unit_pos
 
 	return Factor(new_prob, unit_list)
 
@@ -164,7 +163,6 @@ class Node():
 		'''
 		Complexity is O(m), m is the number of parents the node has.
 		'''
-		
 		# If there are no parents, the probability is trivial
 		if self.parents == []:
 			p = self.prob[0]
@@ -239,6 +237,7 @@ class BN():
 			to_sum.clear()
 		
 		f_res = getNewFactor()
+		
 		for f in factors:
 			f_res = f_res.mul(f)
 		f_res.normalize()
