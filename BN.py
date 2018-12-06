@@ -42,7 +42,6 @@ class Factor():
 		''' 
 		Used for the variable elimination algorithm.
 		if value = 0 || 1 -> Removes the unused value from a set evidence variable.
-		if value = -1 sums out the *unit* variable. unit is the variable index in the node.
 		Complexity: O(n)
 		'''
 		if unit not in self.units:
@@ -79,12 +78,13 @@ class Factor():
 	def mul(self, factor):
 		''' 
 		Multiplies a factor by another, storing the result in self.
-		Complexity: idk
+		Complexity: O(n log n)
 		'''
 
 		common_units = 0
 		new_units = {}
 
+		# Complexity: O(n log n)
 		for element in self.units:
 			if element in factor.units:
 				common_units += 1
@@ -98,22 +98,30 @@ class Factor():
 
 		new_prob = [1] * (1 << (len(self.units) + len(factor.units) - common_units))
 
-		for i in range(1 << len(new_units)):
+		# Complexity: O(n)
+		for i in range(len(new_prob)):
 			new_prob[i] = self.getProb(i, new_units) * factor.getProb(i, new_units)
 
 		return Factor(new_prob, new_units)
 
 
 	def getMultiplier(self, unit_pos):
+		'''
+		Gets the index multiplier for the specific position
+		Complexity = O(1)
+		'''
 		return 1 << unit_pos
 
 	def normalize(self):
+		'''
+		Normalizes a factor.
+		Complexity = O(1)
+		'''
 		add = float(self.prob[0] + self.prob[1])
 		self.prob[0] /= add
 		self.prob[1] /= add
 
 	def getProb(self, evid, new_units):
-
 		index = 0
 		for unit in self.units:
 			index += int(evid & 1 << new_units[unit] != 0) << self.units[unit]
@@ -121,6 +129,11 @@ class Factor():
 
 
 def getFactorFromNode(node, node_index):
+	'''
+	Create a factor given a node.
+	Complexity: O(n), n is the prob size, which is O(2**k), k is the units.
+	Size Complexity for each factor is O(2**k).
+	'''
 	# Creating new prob list for factor
 	new_prob = [0] * (1 << (len(node.parents) + 1))
 	for i in range(0, len(new_prob), 2):
@@ -140,6 +153,10 @@ def getFactorFromNode(node, node_index):
 
 
 def updateDict(d, val):
+	''' 
+	Updates the dictionary for the next positions
+	Complexity O(n), n is the dictionary size.
+	'''
 	pos = len(d)
 	for i in d:
 		if i > val:
@@ -184,6 +201,10 @@ class BN():
 		self.nodes = nodes
 
 	def computePostProb(self, evid):
+		'''
+		Time Complexity: O(2**k), number of operations for each parent k
+		Space Complexity: O(2**k), k is the number of parents (max factor size)
+		'''
 
 		# Getting unknown variables
 		unknown = []
@@ -193,6 +214,7 @@ class BN():
 				unknown.append(i)		
 
 		# Creating factors
+		# O(n)
 		factors = []
 		for i in range(len(self.nodes)):
 			factors.append(getFactorFromNode(self.nodes[i], i))
@@ -204,8 +226,7 @@ class BN():
 				for findex in range(len(factors)):
 					factors[findex] = factors[findex].cut(i, val)
 
-		# *** STEP 2 - SUM_OUT *** #
-
+		# *** STEP 2 - SUM OUT *** #
 		factor_val = (0, 1)
 		to_sum = []
 		factor_sums = []
