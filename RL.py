@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Mon Oct 16 20:31:54 2017
-
-@author: mlopes
-"""
+""" TG17, 84711 Diogo Redin, 83405 Joao Neves """
 import numpy as np
 import random
 
@@ -51,8 +47,8 @@ class finiteMDP:
 		else:
 			self.absorv = absorv
 
-	def runPolicy(self, n, x0, poltype = 'greedy', polpar=[]):
-		#DO NOT CHANGE
+	def runPolicy(self, n, x0,  poltype = 'greedy', polpar=[]):
+		#nao alterar
 		traj = np.zeros((n,4))
 		x = x0
 		J = 0
@@ -69,7 +65,7 @@ class finiteMDP:
 		return J,traj
 
 	def VI(self):
-		#DO NOT CHANGE
+		#nao alterar
 		nQ = np.zeros((self.nS,self.nA))
 		while True:
 			self.V = np.max(self.Q,axis=1) 
@@ -79,19 +75,19 @@ class finiteMDP:
 			self.Q = np.copy(nQ)
 			if err<1e-7:
 				break
-		
+			
 		#update policy
 		self.V = np.max(self.Q,axis=1) 
 		#correct for 2 equal actions
 		self.Pol = np.argmax(self.Q, axis=1)
-
+					
 		return self.Q,  self.Q2pol(self.Q)
 
 	def traces2Q(self, trace):
 		'''From a trace of the trajectory calculates the Q values for each action.'''
 
-		# Matrix of nQ values - value of performing an action (nA) in a given state (nS)
-		nQ = np.zeros((self.nS,self.nA))
+		# Matrix of Q values - value of performing an action (nA) in a given state (nS)
+		tempQ = np.zeros((self.nS,self.nA))
 
 		# Learning process stops when the difference between two iterations is marginal (value converges)
 		while True:
@@ -99,15 +95,22 @@ class finiteMDP:
 			# A point in the trace has the format [0 - Initial State, 1 - Action, 2 - Final State, 3 - Reward]
 			# Formula for reinforcement learning is applied to calculate the Q value for each (Action, State)
 			for p in trace:
-				nQ[int(p[0]),int(p[1])] += self.alpha * (p[3] + self.gamma * max(nQ[int(p[2]),:]) - nQ[int(p[0]),int(p[1])])
+
+				initialState = int(p[0])
+				action = int(p[1])
+				finalState = int(p[2])
+				reward = p[3]
+
+				# Reinforcement formula
+				tempQ[initialState,action] += self.alpha * (reward + self.gamma * max(tempQ[finalState,:]) - tempQ[initialState,action])
 
 			# Calculates the determinant of the differences between the old values and the new learned
 			# If this margin is too low means it isnt improving much and the learning process can stop
-			if np.linalg.norm(self.Q-nQ) < 1e-2:
+			if np.linalg.norm(self.Q-tempQ) < 1e-2:
 				break
 
 			# Update matrix with new learned values
-			self.Q = np.copy(nQ)
+			self.Q = np.copy(tempQ)
 
 		return self.Q
 
@@ -117,6 +120,7 @@ class finiteMDP:
 		# Exploitation - Take the action with the highest Q value for this state
 		if poltype == 'exploitation':
 
+			# Q values are given and we chose the action with the highest
 			actionsQs = self.Q2pol(polpar)[x]
 			maxActionIndex = np.argmax(actionsQs)
 
@@ -125,9 +129,11 @@ class finiteMDP:
 		# Exploration - Taking a random action for this state
 		elif poltype == 'exploration':
 
-			# Find the indices of those entries [x, action, state]
+			# Find the indices of those entries [x, action, state] with p > 0
 			indices = np.where(self.P[x] > 0)
 			actions = indices[0]
+
+			# Choose a random one
 			actionIndex = random.choice(actions)
 
 			return int(actionIndex)
@@ -140,8 +146,8 @@ class finiteMDP:
 
 		# Mark on the matrix the position that has the higher Qvalue (state, action)
 		pol = np.zeros((nS, nA))
-		for i, line in enumerate(Q):
-			pol[i][np.argmax(line)] = 1
+		for state, action in enumerate(Q):
+			pol[state][np.argmax(action)] = 1
 
 		# Returns the matrix with the position marked
 		return pol
