@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import numpy
 
 def flatten(l):
 
@@ -18,7 +19,6 @@ def flatten(l):
 		i += 1
 	return l
 
-
 class Factor():
 	def __init__(self, prob, units):
 		''' 
@@ -29,7 +29,7 @@ class Factor():
 		self.prob = prob
 		self.units = units
 		
-	def sumOut(self, factor):
+	def sumFactor(self, factor):
 		''' 
 		Used for the variable elimination algorithm.
 		Complexity: O(n)
@@ -123,7 +123,7 @@ class Factor():
 
 
 def getFactorFromNode(node, node_index):
-	new_prob = [0] * (2**(len(node.parents) + 1))
+	new_prob = [0] * (1 << (len(node.parents) + 1))
 	index = 0
 	for i in range(0, len(new_prob), 2):
 		new_prob[i] = 1 - node.prob[index]
@@ -148,14 +148,15 @@ def updateDict(d, val):
 			d[i] += 1
 	d[val] = pos
 
+def getNewFactor():
+	return Factor([1.0],{})
 
 class Node():
 	def __init__(self, prob, parents = []):
-		if type(prob) != list:
+		if type(prob) == numpy.ndarray:
 			prob = prob.tolist()
 
 		self.prob = flatten(prob)
-		
 		self.parents = parents
 
 	def computeProb(self, evid):
@@ -184,7 +185,8 @@ class BN():
 		self.nodes = nodes
 
 	def computePostProb(self, evid):
-		# Getting query and unknown variables
+
+		# Getting unknown variables
 		unknown = []
 		
 		for i in range(len(evid)):
@@ -202,33 +204,40 @@ class BN():
 			if val == 0 or val == 1:
 				for findex in range(len(factors)):
 					factors[findex] = factors[findex].cut(i, val)
+
 		# *** STEP 2 - SUM_OUT *** #
 
 		factor_val = (0, 1)
+		to_sum = []
+		factor_sums = []
 
 		while len(unknown):
 			sum_var = unknown[-1]
-			unknown = unknown[:-1]
-			to_sum = []
-			factor_sums = [Factor([1.0],{}), Factor([1.0],{})]
+			factor_sums[:] = [getNewFactor(), getNewFactor()]
 
-			
+			# Finding factors to be summed out
 			for f in factors:
 				if sum_var in f.units:
 					to_sum.append(f)
+
+			# Pointwise product, for variable = true and variable = false
 			for val in factor_val:
 				for f in to_sum:
 					factor_sums[val] = factor_sums[val].mul(f.cut(sum_var, val))
 
-			
+			# Sum the two results
 			if len(factor_sums[0].units) != 0:
-				factor_sums[0].sumOut(factor_sums[1])
+				factor_sums[0].sumFactor(factor_sums[1])
 				factors.append(factor_sums[0])
 
+			# Removing factors that were summed out
 			for f in to_sum:
 				factors.remove(f)
+			
+			unknown = unknown[:-1]
+			to_sum.clear()
 		
-		f_res = Factor([1], {})
+		f_res = getNewFactor()
 		for f in factors:
 			f_res = f_res.mul(f)
 		f_res.normalize()
