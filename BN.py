@@ -33,6 +33,7 @@ class Factor():
 	def sumFactor(self, factor):
 		''' 
 		Used for the variable elimination algorithm.
+		Sums all positions in two factors with the same dimensions
 		Complexity: O(n)
 		'''
 		for i in range(len(self.prob)):
@@ -41,8 +42,9 @@ class Factor():
 	def cut(self, unit, value):
 		''' 
 		Used for the variable elimination algorithm.
-		if value = 0 || 1 -> Removes the unused value from a set evidence variable.
+		Removes the unused value from a set unit variable.
 		Also used for the pointwise product, to obtain values for true and false for a variable.
+		Returns a new factor instance.
 		Complexity: O(n)
 		'''
 		# If there's nothing to cut, return self
@@ -86,15 +88,16 @@ class Factor():
 
 	def mul(self, factor):
 		''' 
-		Multiplies a factor by another, storing the result in self.
-		Complexity: O(n log n)
+		Multiplies a factor by another.
+		self is changed, so a product neutral factor should be used as self.
+		Complexity: O(n * k)
 		'''
 
 		common_units = 0
 		new_units = {}
 
-		# Complexity: O(n log n)
 		# Adding up both unit dictionaries, updating positions
+		# Complexity: O(n log n)
 		for element in self.units:
 			if element in factor.units:
 				common_units += 1
@@ -109,13 +112,14 @@ class Factor():
 		new_size = 1 << (len(self.units) + len(factor.units) - common_units)
 		new_prob = []
 
-		# Complexity: O(n)
+		# PointWise Multiplication
+		# O(n * k), since all individual values are multiplied
 		for i in range(new_size):
 			new_prob.append(self.getProb(i, new_units) * factor.getProb(i, new_units))
 		
-		# Returns a new, separate factor,
-		# since the original factors are necessary for later
-		return Factor(new_prob, new_units)
+		# Update self
+		self.prob = new_prob
+		self.units = new_units
 
 	def normalize(self):
 		'''
@@ -137,15 +141,15 @@ class Factor():
 			index += int(evid & 1 << new_units[unit] != 0) << self.units[unit]
 		return self.prob[index]
 
-
 def getFactorFromNode(node, node_index):
 	'''
 	Create a factor given a node.
 	Complexity: which is O(2**k), k is the units.
 	Size Complexity for each factor is O(2**k).
 	'''
-	# New prob list adds a dimension: node_index
-	# which necessitates the value for node_index = false AND = true.(1-prob, prob)
+	# New prob list adds a dimension: node_index (self index in BN)
+	# which necessitates the addition of values
+	# for node_index = false AND = true. (1-prob, prob)
 	new_prob = []
 	for prob in node.prob:
 		new_prob.append(1 - prob)
@@ -154,7 +158,7 @@ def getFactorFromNode(node, node_index):
 	unit_list = {}
 	unit_pos = len(node.parents)
 
-	# Creating new unit list + position for factor
+	# Creating new unit list for factor
 	for parent in node.parents:
 		unit_list[parent] = unit_pos
 		unit_pos -= 1
@@ -165,7 +169,7 @@ def getFactorFromNode(node, node_index):
 
 def updateDict(d, val):
 	''' 
-	Updates the dictionary for the next positions
+	Updates the dictionary with the new position
 	Complexity O(n), n is the dictionary size.
 	'''
 	pos = len(d)
@@ -177,6 +181,9 @@ def updateDict(d, val):
 	d[val] = pos
 
 def getNewFactor():
+	''' 
+	Returns a new (product neutral) factor for storing multiplication results.
+	'''
 	return Factor([1.0],{})
 
 class Node():
@@ -211,12 +218,24 @@ class BN():
 		self.gra = gra
 		self.nodes = nodes
 
+	def computeJointProb(self, evid):
+		'''
+		Returns the joint probability in the Bayes Network, given the evidence variable.
+		Complexity: O(n * m)
+		n is the number of nodes. m is the number of the node's parents.
+		'''
+		res = 1
+		for i in range(len(self.nodes)):
+			res *= self.nodes[i].computeProb(evid)[evid[i]]
+		return res
+
 	def computePostProb(self, evid):
 		'''
-		Time Complexity: O(2**k), number of operations for each parent k
-		Space Complexity: O(2**k), k is the number of parents (max factor size)
+		Returns a "a posteriori probability" (exact inference) on the given Bayes Network,
+		given the query (-1) and evidence variables (0 or 1).
+		Time Complexity: O(2**n), Space Complexity: O(2**n), 
+		where n is the number of nodes in the BN (max factor size)
 		'''
-
 		# Getting unknown variables
 		unknown = []
 		
@@ -224,8 +243,7 @@ class BN():
 			if evid[i] == []:
 				unknown.append(i)		
 
-		# Creating factors
-		# O(n)
+		# Creating factors from the nodes for the algorithm
 		factors = []
 		for i in range(len(self.nodes)):
 			factors.append(getFactorFromNode(self.nodes[i], i))
@@ -235,7 +253,7 @@ class BN():
 		#
 
 		# Run through evidence array,
-		# cutting evidence variables for the specific value
+		# cutting evidence variables for their specific value
 		for ev in range(len(evid)):
 			val = evid[ev]
 			if val == 0 or val == 1:
@@ -243,7 +261,7 @@ class BN():
 					factors[i] = factors[i].cut(ev, val)
 
 		#
-		# *** STEP 2 - SUM OUT *** #
+		# *** STEP 2 - SUM OUT OF UNKNOWN VARIABLES *** #
 		#
 
 		factor_val = (0, 1)
@@ -272,7 +290,7 @@ class BN():
 			# and variable = false, (0, 1)
 			for val in factor_val:
 				for f in to_sum:
-					factor_sums[val] = factor_sums[val].mul(f.cut(sum_var, val))
+					factor_sums[val].mul(f.cut(sum_var, val))
 
 			# Sum the two results
 			if len(factor_sums[0].units) != 0:
@@ -294,20 +312,9 @@ class BN():
 		f_res = getNewFactor()
 		
 		for f in factors:
-			f_res = f_res.mul(f)
+			f_res.mul(f)
 
 		f_res.normalize()
 
-		# Returns the value for query = true
+		# Returns the value for P(query|evidence) = true
 		return f_res.prob[1]
-	
-	def computeJointProb(self, evid):
-		'''
-		Complexity: O(n * m)
-		n is the number of nodes. m is the number of the node's parents.
-		'''
-
-		res = 1
-		for i in range(len(self.nodes)):
-			res *= self.nodes[i].computeProb(evid)[evid[i]]
-		return res
