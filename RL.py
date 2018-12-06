@@ -24,7 +24,7 @@ class finiteMDP:
 		# Matrix that holds the values learned for each action on each state
 		self.Q = np.zeros((self.nS, self.nA))
 
-		# List that holds the learning policy prefered for each state (?)
+		# List that holds the expected returns with discount for each state
 		self.V = np.zeros((self.nS))
 
 		# Discount factor (0 prefers an immediate reward while 1 prefers a later reward) 
@@ -93,13 +93,13 @@ class finiteMDP:
 		# Matrix of nQ values - value of performing an action (nA) in a given state (nS)
 		nQ = np.zeros((self.nS,self.nA))
 
-		# Learning process stops when the difference between two iterations is marginal
+		# Learning process stops when the difference between two iterations is marginal (value converges)
 		while True:
 
 			# A point in the trace has the format [0 - Initial State, 1 - Action, 2 - Final State, 3 - Reward]
 			# Formula for reinforcement learning is applied to calculate the Q value for each (Action, State)
 			for p in trace:
-				nQ[int(p[0]),int(p[1])] = nQ[int(p[0]),int(p[1])] + self.alpha * (p[3] + self.gamma * max(nQ[int(p[2]),:]) - nQ[int(p[0]),int(p[1])])
+				nQ[int(p[0]),int(p[1])] += self.alpha * (p[3] + self.gamma * max(nQ[int(p[2]),:]) - nQ[int(p[0]),int(p[1])])
 
 			# Calculates the determinant of the differences between the old values and the new learned
 			# If this margin is too low means it isnt improving much and the learning process can stop
@@ -111,27 +111,37 @@ class finiteMDP:
 
 		return self.Q
 
-	# J,traj = fmdp.runPolicy(3,3,poltype = "exploitation", polpar = Qr)
-	def policy(self, x, poltype, par = []):
+	def policy(self, x, poltype, polpar = []):
 		'''For a given state returns the best corresponding action according to the specified policy. This function is used to calculate trajectories.'''
 
-		p = np.copy(self.P)
-
-		# Exploitation - take the action with the highest probability for this state
+		# Exploitation - Take the action with the highest Q value for this state
 		if poltype == 'exploitation':
 
-			# Get the action with the highest probability and re-construct the indices of the multidimensional matrix
-			a = np.array([5, *np.unravel_index(p[x].argmax(), p[x].shape)])[1]
+			actionsQs = self.Q2pol(polpar)[x]
+			maxActionIndex = np.argmax(actionsQs)
 
-			return 0
+			return int(maxActionIndex)
 
-		# Exploration - taking a random choice
+		# Exploration - Taking a random action for this state
 		elif poltype == 'exploration':
 
-			# Pick two random options for state x
-			r = np.random.choice(p[x].shape, 2, replace=False)
+			# Find the indices of those entries [x, action, state]
+			indices = np.where(self.P[x] > 0)
+			actions = indices[0]
+			actionIndex = random.choice(actions)
 
-			return 1
+			return int(actionIndex)
 
-	def Q2pol(self, Q, eta=5):
-		return np.exp(eta*Q)/np.dot(np.exp(eta*Q),np.array([[1,1],[1,1]]))
+	def Q2pol(self, Q):
+
+		# States and actions
+		nS = len(Q)
+		nA = len(Q[0])
+
+		# Mark on the matrix the position that has the higher Qvalue (state, action)
+		pol = np.zeros((nS, nA))
+		for i, line in enumerate(Q):
+			pol[i][np.argmax(line)] = 1
+
+		# Returns the matrix with the position marked
+		return pol
