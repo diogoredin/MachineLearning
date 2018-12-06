@@ -28,7 +28,7 @@ class Factor():
 		'''
 		self.prob = prob
 		self.units = units
-
+		
 	def sumOut(self, factor):
 		''' 
 		Used for the variable elimination algorithm.
@@ -48,8 +48,6 @@ class Factor():
 			return self
 		new_prob = []
 
-
-		
 		res = Factor(self.prob, self.units.copy())
 		# Updating positions
 		unit_pos = res.units[unit]
@@ -92,38 +90,18 @@ class Factor():
 		for element in self.units:
 			if element in factor.units:
 				common_units.append(element)
-				if max_common[0] == -1 or max_common[0] != -1 and max_common[0] > self.units[element]:
-					max_common = [self.units[element], factor.units[element]]
+
 			if element not in new_units:
 				updateDict(new_units, element)
 
 		for element in factor.units:
 			if element not in new_units:
 				updateDict(new_units, element)
-		
-		hops = [1, 1]
 
-		if self.getMultiplier(max_common[0]) != factor.getMultiplier(max_common[1]):
-			multiplier = self.getMultiplier(max_common[0]) / float(factor.getMultiplier(max_common[1]))
-			if multiplier > 1:
-				hops = [1, int(multiplier)]
-			else:
-				hops = [int(1 / multiplier), 1]
-		
 		new_prob = [1] * (1 << (len(factors[0].units) + len(factors[1].units) - len(common_units)))
-		for i in range(2):
-			factor_index = 0
-			it = 0
-			while it < len(new_prob):
-				hops_left = hops[i]
-				while hops_left > 0:
-					new_prob[it] *= factors[i].prob[factor_index]
-					it += 1
-					hops_left -= 1
 
-				factor_index += 1
-				if factor_index >= len(factors[i].prob):
-					factor_index = 0	
+		for i in range(1 << len(new_units)):
+			new_prob[i] = self.getProb(i, new_units) * factor.getProb(i, new_units)
 
 		return Factor(new_prob, new_units)
 
@@ -135,6 +113,13 @@ class Factor():
 		self.prob[0] /= add
 		self.prob[1] /= add
 
+	def getProb(self, evid, new_units):
+		index = 0
+		mul = len (self.units) - 1
+
+		for unit in self.units:
+			index += int(evid & 1 << len (new_units) - 1 - new_units[unit] != 0) << mul - self.units[unit]
+		return self.prob[index]
 
 
 def getFactorFromNode(node, node_index):
@@ -168,7 +153,7 @@ class Node():
 	def __init__(self, prob, parents = []):
 		if type(prob) != list:
 			prob = prob.tolist()
-			
+
 		self.prob = flatten(prob)
 		
 		self.parents = parents
@@ -217,8 +202,8 @@ class BN():
 			if val == 0 or val == 1:
 				for findex in range(len(factors)):
 					factors[findex] = factors[findex].cut(i, val)
-	
 		# *** STEP 2 - SUM_OUT *** #
+
 		factor_val = (0, 1)
 
 		while len(unknown):
@@ -231,14 +216,13 @@ class BN():
 			for f in factors:
 				if sum_var in f.units:
 					to_sum.append(f)
-			
 			for val in factor_val:
 				for f in to_sum:
 					factor_sums[val] = factor_sums[val].mul(f.cut(sum_var, val))
 
+			
 			if len(factor_sums[0].units) != 0:
 				factor_sums[0].sumOut(factor_sums[1])
-				
 				factors.append(factor_sums[0])
 
 			for f in to_sum:
