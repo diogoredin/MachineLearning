@@ -39,7 +39,7 @@ absorv[[0,6]]=1
 fmdp = RL.finiteMDP(7,2,0.9,Pl,Rl,absorv)
 
 # Generate an optimal trajectory according to Exploration
-J,traj = fmdp.runPolicy(3,3,poltype = "exploration")
+J,traj = fmdp.runPolicy(3000,3,poltype = "exploration")
 
 # Calculate the Q values of the trajectory chosen
 Qr = fmdp.traces2Q(traj)
@@ -51,9 +51,9 @@ Qr = fmdp.traces2Q(traj)
 # Check results
 data = np.load("Q1.npz")
 if np.sqrt(sum(sum((data['Q1']-Qr)**2)))<1:
-	print("Aproximação de Q dentro do previsto. OK\n")
+	print("Aproximação de Q dentro do previsto (calcula traj com exploration). OK\n")
 else:
-	print("Aproximação de Q fora do previsto. FAILED\n")
+	print("Aproximação de Q fora do previsto (calcula traj com exploration). FAILED\n")
 
 # Generate an optimal trajectory according to Exploration
 J,traj = fmdp.runPolicy(3,3,poltype = "exploitation", polpar = Qr)
@@ -63,9 +63,9 @@ J,traj = fmdp.runPolicy(3,3,poltype = "exploitation", polpar = Qr)
 
 # Check results
 if np.sqrt(sum(sum((data['traj2']-traj)**2)))<1:
-	print("Trajectória óptima. OK\n")
+	print("Trajectória óptima (calcula traj com exploitation). OK\n")
 else:
-	print("Trajectória não óptima. FAILED\n")
+	print("Trajectória não óptima (calcula traj com exploitation). FAILED\n")
 
 #------------------------------- EXERCISE 2 -------------------------------#
 print("Exercise 2")
