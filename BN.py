@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """TG17, 83405 Joao Neves, 84711 Diogo Redin"""
-import numpy
+import numpy as np
 
 def flatten(l):
 
@@ -42,37 +42,46 @@ class Factor():
 		''' 
 		Used for the variable elimination algorithm.
 		if value = 0 || 1 -> Removes the unused value from a set evidence variable.
+		Also used for the pointwise product, to obtain values for true and false for a variable.
 		Complexity: O(n)
 		'''
+		# If there's nothing to cut, return self
 		if unit not in self.units:
 			return self
 		new_prob = []
 
 		res = Factor(self.prob, self.units.copy())
-		# Updating positions
+
+		# Updating positions in dictionary, removing variable to cut
 		unit_pos = res.units[unit]
-
-		for element in res.units:
-			if res.units[element] > unit_pos:
-				res.units[element] -= 1
-		
-
-		max_hops = res.getMultiplier(unit_pos)
-		hop_distance = max_hops
-		i = 0
-
-		while i < len(res.prob):
-			for remaining_hops in range(max_hops):
-				# Obtain P(unit = true)
-				if value == 1:
-					new_prob.append(res.prob[i + hop_distance])
-				# Obtain P(unit = false)
-				elif value == 0:
-					new_prob.append(res.prob[i])
-				i += 1
-			i += hop_distance
+		for var in res.units:
+			if res.units[var] > unit_pos:
+				res.units[var] -= 1
 		del res.units[unit]
+		
+		# Offset is used to choose between true and false values
+		# Since false values are first, offset = 0 for false
+		offset = 0
+
+		# Limit is the number of sequential values to cut,
+		# which is the number of sequential values for which unit = true OR unit = false
+		limit = 1 << unit_pos
+
+		# If value = true, offset will be instead the first value for which unit = true,
+		# so it skips all sequential values for unit = false
+		if value == 1:
+			offset += limit
+
+		# To cut out the desired variable, get all elements 
+		# in start + limit, which are sequential values for unit = true OR unit = false.
+		# Step is 2 * limit, so start is at the next sequence of unit = true OR unit = false.
+		for start in range(offset, len(res.prob), limit << 1):
+			new_prob += res.prob[start:start + limit]
+		
 		res.prob = new_prob
+
+		# A new factor is returned for this operation
+		# self may be necessary for operations later, so remains unchanged
 		return res
 
 	def mul(self, factor):
@@ -85,32 +94,28 @@ class Factor():
 		new_units = {}
 
 		# Complexity: O(n log n)
+		# Adding up both unit dictionaries, updating positions
 		for element in self.units:
 			if element in factor.units:
 				common_units += 1
 
 			if element not in new_units:
 				updateDict(new_units, element)
-
 		for element in factor.units:
 			if element not in new_units:
 				updateDict(new_units, element)
 
-		new_prob = [1] * (1 << (len(self.units) + len(factor.units) - common_units))
+		# Getting new size for the factor prob
+		new_size = 1 << (len(self.units) + len(factor.units) - common_units)
+		new_prob = []
 
 		# Complexity: O(n)
-		for i in range(len(new_prob)):
-			new_prob[i] = self.getProb(i, new_units) * factor.getProb(i, new_units)
-
+		for i in range(new_size):
+			new_prob.append(self.getProb(i, new_units) * factor.getProb(i, new_units))
+		
+		# Returns a new, separate factor,
+		# since the original factors are necessary for later
 		return Factor(new_prob, new_units)
-
-
-	def getMultiplier(self, unit_pos):
-		'''
-		Gets the index multiplier for the specific position
-		Complexity = O(1)
-		'''
-		return 1 << unit_pos
 
 	def normalize(self):
 		'''
@@ -122,6 +127,11 @@ class Factor():
 		self.prob[1] /= add
 
 	def getProb(self, evid, new_units):
+		'''
+		Returns a factor's specific prob for evid, new units coordinates
+		Used for factor multiplication, to get corresponding values in both factors
+		O(k), k is the number of the factor's units
+		'''
 		index = 0
 		for unit in self.units:
 			index += int(evid & 1 << new_units[unit] != 0) << self.units[unit]
@@ -131,14 +141,15 @@ class Factor():
 def getFactorFromNode(node, node_index):
 	'''
 	Create a factor given a node.
-	Complexity: O(n), n is the prob size, which is O(2**k), k is the units.
+	Complexity: which is O(2**k), k is the units.
 	Size Complexity for each factor is O(2**k).
 	'''
-	# Creating new prob list for factor
-	new_prob = [0] * (1 << (len(node.parents) + 1))
-	for i in range(0, len(new_prob), 2):
-		new_prob[i] = 1 - node.prob[i >> 1]
-		new_prob[i + 1] = node.prob[i >> 1]
+	# New prob list adds a dimension: node_index
+	# which necessitates the value for node_index = false AND = true.(1-prob, prob)
+	new_prob = []
+	for prob in node.prob:
+		new_prob.append(1 - prob)
+		new_prob.append(prob)
 	
 	unit_list = {}
 	unit_pos = len(node.parents)
@@ -170,7 +181,7 @@ def getNewFactor():
 
 class Node():
 	def __init__(self, prob, parents = []):
-		if type(prob) == numpy.ndarray:
+		if type(prob) == np.ndarray:
 			prob = prob.tolist()
 
 		self.prob = flatten(prob)
@@ -219,28 +230,46 @@ class BN():
 		for i in range(len(self.nodes)):
 			factors.append(getFactorFromNode(self.nodes[i], i))
 
+		#
 		# *** STEP 1 - CUT EVIDENCE VARIABLES *** #
-		for i in range(len(evid)):
-			val = evid[i]
-			if val == 0 or val == 1:
-				for findex in range(len(factors)):
-					factors[findex] = factors[findex].cut(i, val)
+		#
 
+		# Run through evidence array,
+		# cutting evidence variables for the specific value
+		for ev in range(len(evid)):
+			val = evid[ev]
+			if val == 0 or val == 1:
+				for i in range(len(factors)):
+					factors[i] = factors[i].cut(ev, val)
+
+		#
 		# *** STEP 2 - SUM OUT *** #
+		#
+
 		factor_val = (0, 1)
 		to_sum = []
-		factor_sums = []
+		factor_sums = [0, 0]
 
-		while len(unknown):
+		# Loop while there are still unknown variables
+		while len(unknown) > 0:
+
+			# Get variable to be summed out
+			# will be the last value in to_sum
+			# (deepest unknown node in the BN, in this case)
 			sum_var = unknown[-1]
-			factor_sums[:] = [getNewFactor(), getNewFactor()]
 
+			# Factor sums will save the multiplication results
+			# for all the factors to be summed out (true and false)
+			factor_sums[0] = getNewFactor()
+			factor_sums[1] = getNewFactor()
+			
 			# Finding factors to be summed out
 			for f in factors:
 				if sum_var in f.units:
 					to_sum.append(f)
 
-			# Pointwise product, for variable = true and variable = false
+			# Pointwise product, for variable = true
+			# and variable = false, (0, 1)
 			for val in factor_val:
 				for f in to_sum:
 					factor_sums[val] = factor_sums[val].mul(f.cut(sum_var, val))
@@ -254,14 +283,22 @@ class BN():
 			for f in to_sum:
 				factors.remove(f)
 			
-			unknown = unknown[:-1]
+			# Removing unknown from list
+			del unknown[-1]
 			to_sum.clear()
 		
+		#
+		# *** STEP 3 - POINT-WISE PRODUCT ON REMAINING FACTORS *** #
+		#
+
 		f_res = getNewFactor()
 		
 		for f in factors:
 			f_res = f_res.mul(f)
+
 		f_res.normalize()
+
+		# Returns the value for query = true
 		return f_res.prob[1]
 	
 	def computeJointProb(self, evid):
