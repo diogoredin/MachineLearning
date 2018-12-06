@@ -125,16 +125,10 @@ class finiteMDP:
 		# Exploration - Taking a random action for this state
 		elif poltype == 'exploration':
 
-			# Draw number between 0 and 1
-			r = np.random.uniform(0,1)
-
-			# Get entries with associated probability > random
-			truth = self.P[x][self.P[x] > r]
-
 			# Find the indices of those entries [x, action, state]
-			indices = np.where(truth)
+			indices = np.where(self.P[x] > 0)
 			actions = indices[0]
-			actionIndex = actions[-1]
+			actionIndex = random.choice(actions)
 
 			return int(actionIndex)
 

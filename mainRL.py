@@ -45,7 +45,7 @@ J,traj = fmdp.runPolicy(3000,3,poltype = "exploration")
 Qr = fmdp.traces2Q(traj)
 
 # Print results
-# print(traj)
+#print(traj)
 # print(Qr)
 
 # Check results
