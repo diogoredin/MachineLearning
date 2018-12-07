@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-""" TG17, 84711 Diogo Redin, 83405 Joao Neves """
+"""TG17, 83405 Joao Neves, 84711 Diogo Redin"""
 import numpy as np
 import random
 
