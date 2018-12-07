@@ -37,7 +37,7 @@ class finiteMDP:
 
 		# Indicates for a given state and action the immediate reward of performing such action
 		if len(R)==0:
-			self.R = np.zeros((self.nS, self.nA))
+			self.R = np.zeros((self.nA, self.nS))
 		else:
 			self.R = R
 
@@ -119,9 +119,18 @@ class finiteMDP:
 
 		# Exploitation - Take the action with the highest Q value for this state
 		if poltype == 'exploitation':
+			
+			# States and actions
+			nS = len(polpar)
+			nA = len(polpar[0])
+
+			# Mark on the matrix the position that has the higher Qvalue (state, action)
+			pol = np.zeros((nS, nA))
+			for state, action in enumerate(polpar):
+				pol[state][np.argmax(action)] = 1
 
 			# Q values are given and we chose the action with the highest
-			actionsQs = self.Q2pol(polpar)[x]
+			actionsQs = pol[x]
 			maxActionIndex = np.argmax(actionsQs)
 
 			return int(maxActionIndex)
@@ -138,16 +147,5 @@ class finiteMDP:
 
 			return int(actionIndex)
 
-	def Q2pol(self, Q):
-
-		# States and actions
-		nS = len(Q)
-		nA = len(Q[0])
-
-		# Mark on the matrix the position that has the higher Qvalue (state, action)
-		pol = np.zeros((nS, nA))
-		for state, action in enumerate(Q):
-			pol[state][np.argmax(action)] = 1
-
-		# Returns the matrix with the position marked
-		return pol
+	def Q2pol(self, Q, eta=5):
+		return np.exp(eta*Q)/np.dot(np.exp(eta*Q),np.array([[1,1],[1,1]]))
