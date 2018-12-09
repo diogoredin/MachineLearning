@@ -1,1 +1,3 @@
-# ai_bayesian_network
+# Machine Learning
+- BN -> Bayesian Networks
+- RL -> Reinforcement Learning (QLearning).
